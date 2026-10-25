@@ -45,7 +45,7 @@
         pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
             pdfDoc = pdfDoc_;
             
-            // Render semua halaman secara berurutan
+            // Render semua halaman secara berurutan y
             for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
                 renderPage(pageNum);
             }
