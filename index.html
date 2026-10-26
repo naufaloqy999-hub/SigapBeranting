@@ -3,75 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tampilan PDF Presentasi</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #323639;
-            overflow: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #pdf-viewer {
-            width: 100%;
-            max-width: 800px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            margin: 20px 0;
-        }
-        canvas {
-            width: 100% !important;
-            height: auto !important;
-            display: block;
-        }
-    </style>
-    <!-- Memuat Library PDF.js dari CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <meta name="theme-color" content="#172B5B">
+    <meta name="description"
+          content="SIGAP BERANTING, media edukasi gizi dan pencegahan stunting.">
+
+    <title>SIGAP BERANTING | Buku Digital</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- PDF.js untuk membaca dokumen PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- StPageFlip untuk animasi membalik halaman -->
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 </head>
+
 <body>
 
-    <div id="pdf-viewer"></div>
+    <!-- HIASAN LATAR -->
+    <div class="background-decoration decoration-one"></div>
+    <div class="background-decoration decoration-two"></div>
 
-    <script>
-        const url = 'dokumen.pdf';
+    <!-- HALAMAN PEMBUKA -->
+    <section id="landing" class="landing">
 
-        // Konfigurasi worker PDF.js
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        <nav class="navbar">
+            <div class="brand">
+                <span class="brand-icon">🌿</span>
+                <span>SIGAP BERANTING</span>
+            </div>
 
-        // Memuat dokumen PDF
-        pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
-            pdfDoc = pdfDoc_;
-            
-            // Render semua halaman secara berurutan y
-            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                renderPage(pageNum);
-            }
-        });
+            <span class="nav-label">BUKU DIGITAL</span>
+        </nav>
 
-        function renderPage(num) {
-            pdfDoc.getPage(num).then(function(page) {
-                const scale = 1.5;
-                const viewport = page.getViewport({ scale: scale });
+        <main class="hero">
 
-                const container = document.getElementById('pdf-viewer');
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+            <div class="hero-text">
 
-                container.appendChild(canvas);
+                <span class="eyebrow">
+                    ✦ EDUKASI GIZI KELUARGA ✦
+                </span>
 
-                const renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-                page.render(renderContext);
-            });
-        }
-    </script>
+                <h1>
+                    Langkah Kecil,<br>
+                    <span>Masa Depan</span><br>
+                    Lebih Sehat.
+                </h1>
+
+                <p class="hero-description">
+                    Kenali pentingnya gizi, manfaat pangan lokal,
+                    dan langkah pencegahan stunting melalui buku
+                    digital SIGAP BERANTING.
+                </p>
+
+                <button id="openBook" class="primary-button">
+                    <span>📖</span>
+                    BUKA BUKU
+                    <span class="button-arrow">→</span>
+                </button>
+
+                <div class="hero-note">
+                    <span class="note-dot"></span>
+                    Media edukasi gizi ibu dan anak
+                </div>
+
+            </div>
+
+            <!-- ILUSTRASI BUKU -->
+            <div class="book-illustration">
+
+                <div class="glow-circle"></div>
+
+                <div class="floating-leaf leaf-one">🌿</div>
+                <div class="floating-leaf leaf-two">🍃</div>
+                <div class="floating-leaf leaf-three">🌱</div>
+
+                <div class="book-shadow"></div>
+
+                <div class="book-cover">
+
+                    <div class="cover-top">
+                        <span>MEDIA EDUKASI</span>
+                    </div>
+
+                    <div class="cover-art">
+                        <div class="art-circle"></div>
+                        <div class="art-emoji">🥬</div>
+                        <div class="art-emoji food-two">🥚</div>
+                        <div class="art-emoji food-three">🥦</div>
+                        <div class="art-emoji food-four">🐟</div>
+                    </div>
+
+                    <div class="cover-title">
+                        <small>BUKU DIGITAL</small>
+
+                        <h2>
+                            SIGAP<br>
+                            BERANTING
+                        </h2>
+
+                        <p>
+                            Edukasi Gizi dan Pencegahan Stunting
+                        </p>
+                    </div>
+
+                    <div class="cover-bottom">
+                        <span>GIZI • KELUARGA • MASA DEPAN</span>
+                    </div>
+
+                </div>
+
+                <div class="book-caption">
+                    <span>✦</span>
+                    Buka dan jelajahi pengetahuan baru
+                    <span>✦</span>
+                </div>
+
+            </div>
+
+        </main>
+
+        <!-- FOOTER PEMBUKA: TANPA SLOGAN -->
+        <footer class="landing-footer">
+            <span>SIGAP BERANTING</span>
+        </footer>
+
+    </section>
+
+
+    <!-- HALAMAN PEMBACA BUKU -->
+    <section id="reader" class="reader hidden">
+
+        <header class="reader-header">
+
+            <button id="backHome" class="back-button">
+                <span>←</span> Beranda
+            </button>
+
+            <div class="reader-brand">
+                <span>🌿</span>
+                SIGAP BERANTING
+            </div>
+
+            <button id="fullscreenButton"
+                    class="fullscreen-button"
+                    aria-label="Layar penuh">
+                ⛶
+            </button>
+
+        </header>
+
+        <main class="reader-main">
+
+            <div class="reader-heading">
+                <span class="eyebrow">RUANG BACA DIGITAL</span>
+                <h2>Jelajahi Buku</h2>
+                <p>
+                    Ketuk sisi halaman atau geser untuk membalik buku.
+                </p>
+            </div>
+
+            <!-- STATUS PEMUATAN -->
+            <div id="loading" class="loading-box">
+                <div class="loader"></div>
+                <h3>Menyiapkan buku...</h3>
+                <p id="loadingText">
+                    Mohon tunggu sebentar.
+                </p>
+            </div>
+
+            <!-- BUKU DIGITAL -->
+            <div id="bookArea" class="book-area hidden">
+
+                <button id="prevButton"
+                        class="page-arrow"
+                        aria-label="Halaman sebelumnya">
+                    ‹
+                </button>
+
+                <div id="bookContainer" class="book-container">
+                    <div id="book"></div>
+                </div>
+
+                <button id="nextButton"
+                        class="page-arrow"
+                        aria-label="Halaman berikutnya">
+                    ›
+                </button>
+
+            </div>
+
+            <!-- NOMOR DAN PROGRES HALAMAN -->
+            <div id="pageInfo" class="page-info hidden">
+
+                <span class="page-number">
+                    Halaman <strong id="currentPage">1</strong>
+                    dari <strong id="totalPages">70</strong>
+                </span>
+
+                <div class="progress-track">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+
+            </div>
+
+            <!-- TOMBOL NAVIGASI -->
+            <div id="readerControls" class="reader-controls hidden">
+
+                <button id="firstButton" class="control-button">
+                    ⏮ Awal
+                </button>
+
+                <button id="prevButtonBottom" class="control-button">
+                    ← Sebelumnya
+                </button>
+
+                <button id="nextButtonBottom" class="control-button">
+                    Berikutnya →
+                </button>
+
+                <button id="lastButton" class="control-button">
+                    Akhir ⏭
+                </button>
+
+            </div>
+
+            <!-- PESAN ERROR -->
+            <div id="errorBox" class="error-box hidden">
+                <h3>Waduh, bukunya belum bisa dibuka.</h3>
+
+                <p id="errorMessage">
+                    Periksa file PDF dan koneksi internet.
+                </p>
+
+                <button id="retryButton" class="primary-button">
+                    Coba Lagi
+                </button>
+            </div>
+
+            <p class="reader-tip">
+                💡 Tips: gunakan mode layar penuh agar membaca
+                lebih nyaman.
+            </p>
+
+        </main>
+
+        <!-- FOOTER PEMBACA: TANPA SLOGAN -->
+        <footer class="reader-footer">
+            <span>🌿 SIGAP BERANTING</span>
+        </footer>
+
+    </section>
+
+    <script src="script.js"></script>
 
 </body>
 </html>
