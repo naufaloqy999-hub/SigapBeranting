@@ -1,5 +1,11 @@
 /* ==================================
-   SIGAP BERANTING - OPTIMIZED FLIPBOOK
+   SIGAP BERANTING - DIGITAL FLIPBOOK
+   VERSI OPTIMASI HP & FULLSCREEN
+================================== */
+
+
+/* ==================================
+   MENGAMBIL ELEMEN HTML
 ================================== */
 
 const landing = document.getElementById("landing");
@@ -38,32 +44,12 @@ const lastButton = document.getElementById("lastButton");
 
 
 /* ==================================
-   KONFIGURASI
+   VARIABEL UTAMA
 ================================== */
-
-const PDF_FILE = "./dokumen.pdf";
-
-const BOOK_WIDTH = 420;
-const BOOK_HEIGHT = 594;
-
-// Resolusi dibatasi supaya tidak terlalu berat di HP.
-const RENDER_QUALITY = Math.min(
-    window.devicePixelRatio || 1,
-    1.35
-);
-
-// Jumlah halaman yang dirender lebih awal.
-const INITIAL_PAGES = 2;
-
-// Jumlah halaman sekitar halaman aktif yang dipersiapkan.
-const RENDER_AHEAD = 2;
 
 let pdfDocument = null;
 let pageFlip = null;
-
-let pageElements = [];
-let renderedPages = new Set();
-let renderingPages = new Map();
+let pdfPages = [];
 
 let isLoading = false;
 let currentPageNumber = 1;
@@ -71,7 +57,17 @@ let flipResizeTimer = null;
 
 
 /* ==================================
-   PDF.JS WORKER
+   PENGATURAN PDF
+================================== */
+
+const PDF_FILE = "./dokumen.pdf";
+
+const BOOK_WIDTH = 420;
+const BOOK_HEIGHT = 594;
+
+
+/* ==================================
+   PENGATURAN PDF.JS
 ================================== */
 
 if (window.pdfjsLib) {
@@ -81,37 +77,149 @@ if (window.pdfjsLib) {
 
 
 /* ==================================
-   TAMPILAN STATUS
+   TAMBAHAN STYLE FULLSCREEN
 ================================== */
 
-function showLoading(message) {
-    loading.classList.remove("hidden");
-    loadingText.textContent = message;
+const fullscreenStyle = document.createElement("style");
 
-    bookArea.classList.add("hidden");
-    pageInfo.classList.add("hidden");
-    readerControls.classList.add("hidden");
+fullscreenStyle.textContent = `
+    html:fullscreen,
+    html:fullscreen body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #F2F8FF !important;
+    }
 
-    errorBox.classList.add("hidden");
-}
+    .reader.fullscreen-active {
+        width: 100%;
+        height: 100%;
+        min-height: 100dvh;
+        overflow-y: auto;
+        background: #F2F8FF !important;
+    }
 
+    .reader.fullscreen-active .reader-header {
+        position: relative;
+        top: 0;
+        min-height: 55px;
+        padding: 8px 3%;
+    }
 
-function showError(message) {
-    loading.classList.add("hidden");
-    bookArea.classList.add("hidden");
-    pageInfo.classList.add("hidden");
-    readerControls.classList.add("hidden");
+    .reader.fullscreen-active .reader-main {
+        width: 100%;
+        min-height: auto;
+        padding: 10px 0 15px;
+    }
 
-    errorMessage.textContent = message;
-    errorBox.classList.remove("hidden");
-}
+    .reader.fullscreen-active .reader-heading {
+        margin-bottom: 8px;
+    }
+
+    .reader.fullscreen-active .reader-heading h2 {
+        margin: 4px 0;
+        font-size: 20px;
+    }
+
+    .reader.fullscreen-active .reader-heading p {
+        font-size: 10px;
+    }
+
+    .reader.fullscreen-active .book-area {
+        width: 100%;
+        height: calc(100dvh - 185px);
+        min-height: 250px;
+        gap: 0;
+        padding: 0;
+        margin: 0 auto;
+    }
+
+    .reader.fullscreen-active .book-container {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        flex: 1;
+        overflow: visible;
+    }
+
+    .reader.fullscreen-active #book {
+        margin: auto;
+    }
+
+    .reader.fullscreen-active .page-arrow {
+        flex: 0 0 30px;
+        width: 30px;
+        height: 45px;
+        font-size: 27px;
+    }
+
+    .reader.fullscreen-active .page-info {
+        width: 75%;
+        margin: 8px auto 0;
+    }
+
+    .reader.fullscreen-active .page-number {
+        margin-bottom: 5px;
+        font-size: 10px;
+    }
+
+    .reader.fullscreen-active .reader-controls {
+        gap: 5px;
+        margin-top: 10px;
+    }
+
+    .reader.fullscreen-active .control-button {
+        padding: 8px 10px;
+        font-size: 10px;
+    }
+
+    .reader.fullscreen-active .reader-tip,
+    .reader.fullscreen-active .reader-footer {
+        display: none !important;
+    }
+
+    .reader.fullscreen-active .loading-box {
+        padding: 25px 10px;
+    }
+
+    @media (max-width: 600px) {
+        .reader.fullscreen-active .reader-heading {
+            display: none;
+        }
+
+        .reader.fullscreen-active .book-area {
+            height: calc(100dvh - 155px);
+        }
+
+        .reader.fullscreen-active .page-arrow {
+            flex-basis: 22px;
+            width: 22px;
+            border: none;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .reader.fullscreen-active .reader-controls {
+            padding: 0 4px;
+        }
+
+        .reader.fullscreen-active .control-button {
+            padding: 8px 7px;
+            font-size: 9px;
+        }
+    }
+`;
+
+document.head.appendChild(fullscreenStyle);
 
 
 /* ==================================
-   BUKA BUKU
+   BUKA PEMBACA
 ================================== */
 
 openBookButton.addEventListener("click", async () => {
+
     landing.classList.add("hidden");
     reader.classList.remove("hidden");
 
@@ -123,6 +231,7 @@ openBookButton.addEventListener("click", async () => {
     if (!pageFlip && !isLoading) {
         await loadBook();
     }
+
 });
 
 
@@ -130,182 +239,52 @@ openBookButton.addEventListener("click", async () => {
    KEMBALI KE BERANDA
 ================================== */
 
-backHomeButton.addEventListener("click", () => {
+backHomeButton.addEventListener("click", async () => {
+
+    if (document.fullscreenElement) {
+        await document.exitFullscreen();
+    }
+
+    reader.classList.remove("fullscreen-active");
     reader.classList.add("hidden");
+
     landing.classList.remove("hidden");
 
     window.scrollTo({
         top: 0,
         behavior: "smooth"
     });
+
 });
 
 
 /* ==================================
-   MEMBUAT KERANGKA HALAMAN
+   STATUS LOADING
 ================================== */
 
-function createPageElements(totalPages) {
-    bookElement.innerHTML = "";
+function showLoading(message) {
 
-    pageElements = [];
-    renderedPages.clear();
-    renderingPages.clear();
+    loading.classList.remove("hidden");
+    loadingText.textContent = message;
 
-    for (let i = 0; i < totalPages; i++) {
-        const pageElement = document.createElement("div");
+    bookArea.classList.add("hidden");
+    pageInfo.classList.add("hidden");
+    readerControls.classList.add("hidden");
+    errorBox.classList.add("hidden");
 
-        pageElement.className = "page";
-        pageElement.dataset.pageIndex = i;
-        pageElement.dataset.density = "soft";
-
-        // Placeholder sebelum isi PDF selesai dirender.
-        pageElement.style.backgroundColor = "#ffffff";
-
-        const canvas = document.createElement("canvas");
-
-        canvas.setAttribute(
-            "aria-label",
-            `Halaman PDF ${i + 1}`
-        );
-
-        canvas.style.display = "block";
-        canvas.style.width = "100%";
-        canvas.style.height = "100%";
-        canvas.style.objectFit = "contain";
-
-        pageElement.appendChild(canvas);
-        bookElement.appendChild(pageElement);
-
-        pageElements.push(pageElement);
-    }
 }
 
 
-/* ==================================
-   RENDER SATU HALAMAN PDF
-================================== */
+function showError(message) {
 
-async function renderPage(pageIndex) {
-    if (
-        !pdfDocument ||
-        pageIndex < 0 ||
-        pageIndex >= pdfDocument.numPages
-    ) {
-        return;
-    }
+    loading.classList.add("hidden");
+    bookArea.classList.add("hidden");
+    pageInfo.classList.add("hidden");
+    readerControls.classList.add("hidden");
 
-    if (renderedPages.has(pageIndex)) {
-        return;
-    }
+    errorMessage.textContent = message;
+    errorBox.classList.remove("hidden");
 
-    // Hindari merender halaman yang sama dua kali.
-    if (renderingPages.has(pageIndex)) {
-        return renderingPages.get(pageIndex);
-    }
-
-    const renderPromise = (async () => {
-        const pageNumber = pageIndex + 1;
-
-        const pdfPage = await pdfDocument.getPage(pageNumber);
-
-        const originalViewport = pdfPage.getViewport({
-            scale: 1
-        });
-
-        // Sesuaikan resolusi dengan ukuran layar.
-        const screenScale = Math.min(
-            (BOOK_WIDTH * RENDER_QUALITY) /
-                originalViewport.width,
-            (BOOK_HEIGHT * RENDER_QUALITY) /
-                originalViewport.height
-        );
-
-        const viewport = pdfPage.getViewport({
-            scale: screenScale
-        });
-
-        const pageElement = pageElements[pageIndex];
-
-        if (!pageElement) {
-            return;
-        }
-
-        const canvas = pageElement.querySelector("canvas");
-
-        const context = canvas.getContext("2d", {
-            alpha: false
-        });
-
-        canvas.width = Math.ceil(viewport.width);
-        canvas.height = Math.ceil(viewport.height);
-
-        context.fillStyle = "#ffffff";
-
-        context.fillRect(
-            0,
-            0,
-            canvas.width,
-            canvas.height
-        );
-
-        await pdfPage.render({
-            canvasContext: context,
-            viewport: viewport
-        }).promise;
-
-        renderedPages.add(pageIndex);
-
-        // Lepaskan referensi halaman PDF setelah render.
-        pdfPage.cleanup();
-
-    })();
-
-    renderingPages.set(pageIndex, renderPromise);
-
-    try {
-        await renderPromise;
-    } finally {
-        renderingPages.delete(pageIndex);
-    }
-}
-
-
-/* ==================================
-   RENDER HALAMAN DI SEKITAR HALAMAN AKTIF
-================================== */
-
-async function renderNearbyPages(pageIndex) {
-    if (!pdfDocument) return;
-
-    const total = pdfDocument.numPages;
-
-    const start = Math.max(
-        0,
-        pageIndex - RENDER_AHEAD
-    );
-
-    const end = Math.min(
-        total - 1,
-        pageIndex + RENDER_AHEAD
-    );
-
-    // Prioritaskan halaman aktif agar cepat terlihat.
-    await renderPage(pageIndex);
-
-    // Render halaman sekitar secara bertahap.
-    for (let i = start; i <= end; i++) {
-        if (i === pageIndex) continue;
-
-        try {
-            await renderPage(i);
-        } catch (error) {
-            console.warn(
-                `Gagal merender halaman ${i + 1}:`,
-                error
-            );
-        }
-    }
 }
 
 
@@ -314,6 +293,7 @@ async function renderNearbyPages(pageIndex) {
 ================================== */
 
 async function loadBook() {
+
     if (isLoading) return;
 
     isLoading = true;
@@ -321,24 +301,20 @@ async function loadBook() {
     showLoading("Menghubungkan ke dokumen PDF...");
 
     try {
+
         if (!window.pdfjsLib) {
             throw new Error(
-                "PDF.js belum termuat. Periksa koneksi internet."
+                "PDF.js belum berhasil dimuat. Periksa koneksi internet."
             );
         }
 
-        if (
-            !window.St ||
-            typeof window.St.PageFlip !== "function"
-        ) {
+        if (!window.St || typeof window.St.PageFlip !== "function") {
             throw new Error(
-                "Library flipbook belum termuat. " +
-                "Periksa koneksi internet dan muat ulang website."
+                "Pustaka flipbook belum termuat. Periksa koneksi internet."
             );
         }
 
-        loadingText.textContent = "Membuka dokumen PDF...";
-
+        // Mengambil dokumen PDF.
         const loadingTask = pdfjsLib.getDocument({
             url: PDF_FILE
         });
@@ -349,47 +325,128 @@ async function loadBook() {
 
         totalPagesElement.textContent = totalPages;
 
-        // Buat kerangka semua halaman tanpa merender semuanya.
-        createPageElements(totalPages);
+        bookElement.innerHTML = "";
+        pdfPages = [];
 
-        loadingText.textContent =
-            `Menyiapkan halaman 1 dari ${totalPages}...`;
 
-        // Render halaman pertama sebelum menampilkan buku.
-        await renderPage(0);
+        /* ==========================
+           RENDER HALAMAN PDF
+        ========================== */
 
-        // Siapkan halaman kedua jika tersedia.
-        if (totalPages > 1) {
+        for (
+            let pageNumber = 1;
+            pageNumber <= totalPages;
+            pageNumber++
+        ) {
+
             loadingText.textContent =
-                `Menyiapkan halaman 2 dari ${totalPages}...`;
+                `Menyiapkan halaman ${pageNumber} dari ${totalPages}...`;
 
-            await renderPage(1);
+            const pdfPage =
+                await pdfDocument.getPage(pageNumber);
+
+            const originalViewport =
+                pdfPage.getViewport({ scale: 1 });
+
+
+            /*
+             * Optimasi resolusi:
+             * HP menggunakan resolusi lebih ringan.
+             * Desktop tetap cukup tajam.
+             */
+
+            const isMobile = window.innerWidth <= 600;
+
+            const renderQuality = isMobile ? 1.15 : 1.45;
+
+            const renderScale = Math.min(
+                (BOOK_WIDTH * renderQuality) / originalViewport.width,
+                (BOOK_HEIGHT * renderQuality) / originalViewport.height
+            );
+
+            const viewport =
+                pdfPage.getViewport({ scale: renderScale });
+
+
+            const canvas = document.createElement("canvas");
+
+            const context = canvas.getContext("2d", {
+                alpha: false
+            });
+
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+
+            canvas.setAttribute(
+                "aria-label",
+                `Halaman PDF ${pageNumber}`
+            );
+
+            context.fillStyle = "#ffffff";
+
+            context.fillRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            await pdfPage.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+
+
+            const pageElement = document.createElement("div");
+
+            pageElement.className = "page";
+            pageElement.dataset.density = "soft";
+
+            pageElement.appendChild(canvas);
+
+            bookElement.appendChild(pageElement);
+
+            pdfPages.push(pageElement);
+
+            // Bersihkan data halaman yang sudah selesai dirender.
+            pdfPage.cleanup();
+
+
+            // Beri kesempatan browser memproses tampilan.
+            if (pageNumber % 3 === 0) {
+                await new Promise(resolve => {
+                    requestAnimationFrame(resolve);
+                });
+            }
+
         }
 
-        loadingText.textContent = "Menyusun buku digital...";
+
+        /* ==========================
+           MEMBUAT FLIPBOOK
+        ========================== */
+
+        loadingText.textContent =
+            "Menyusun halaman menjadi buku digital...";
+
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         createFlipBook();
 
         loading.classList.add("hidden");
+
         bookArea.classList.remove("hidden");
         pageInfo.classList.remove("hidden");
         readerControls.classList.remove("hidden");
 
         updatePageInfo(0);
 
-        // Render halaman lain di belakang layar setelah buku muncul.
-        setTimeout(() => {
-            renderNearbyPages(0).catch(error => {
-                console.warn("Render halaman tambahan:", error);
-            });
-        }, 100);
-
     } catch (error) {
+
         console.error("Gagal memuat buku:", error);
 
         let message =
-            "Buku belum berhasil dibuka. Pastikan dokumen.pdf " +
-            beradaDiFolderYangBenar();
+            "Buku belum berhasil dibuka. Periksa file dokumen.pdf dan koneksi internet.";
 
         if (error && error.message) {
             message = error.message;
@@ -398,17 +455,11 @@ async function loadBook() {
         showError(message);
 
     } finally {
+
         isLoading = false;
+
     }
-}
 
-
-/* ==================================
-   PESAN LOKASI PDF
-================================== */
-
-function beradaDiFolderYangBenar() {
-    return " berada satu folder dengan index.html dan koneksi internet aktif.";
 }
 
 
@@ -417,66 +468,71 @@ function beradaDiFolderYangBenar() {
 ================================== */
 
 function createFlipBook() {
+
     if (pageFlip) {
+
         try {
             pageFlip.destroy();
         } catch (error) {
-            console.warn("Flipbook sebelumnya:", error);
+            console.warn("Flipbook sebelumnya tidak aktif.");
         }
 
         pageFlip = null;
+
     }
 
-    pageFlip = new St.PageFlip(bookElement, {
-        width: BOOK_WIDTH,
-        height: BOOK_HEIGHT,
 
-        size: "stretch",
+    pageFlip = new St.PageFlip(
+        bookElement,
+        {
+            width: BOOK_WIDTH,
+            height: BOOK_HEIGHT,
 
-        minWidth: 260,
-        maxWidth: BOOK_WIDTH,
+            size: "stretch",
 
-        minHeight: 368,
-        maxHeight: BOOK_HEIGHT,
+            minWidth: 260,
+            maxWidth: BOOK_WIDTH,
 
-        drawShadow: true,
-        flippingTime: 650,
+            minHeight: 368,
+            maxHeight: BOOK_HEIGHT,
 
-        usePortrait: true,
-        startPage: 0,
+            drawShadow: true,
+            flippingTime: 650,
 
-        autoSize: true,
-        maxShadowOpacity: 0.35,
+            usePortrait: true,
+            startPage: 0,
 
-        showCover: false,
-        mobileScrollSupport: true,
+            autoSize: true,
+            maxShadowOpacity: 0.35,
 
-        clickEventForward: true,
-        useMouseEvents: true
-    });
+            showCover: false,
 
-    pageFlip.loadFromHTML(pageElements);
+            mobileScrollSupport: true,
+            clickEventForward: true,
+            useMouseEvents: true
+        }
+    );
+
+
+    pageFlip.loadFromHTML(pdfPages);
+
 
     pageFlip.on("flip", event => {
-        const pageIndex = Number(event.data);
-
-        updatePageInfo(pageIndex);
-
-        // Render halaman aktif dan halaman di sekitarnya.
-        renderNearbyPages(pageIndex).catch(error => {
-            console.warn("Gagal memuat halaman:", error);
-        });
+        updatePageInfo(event.data);
     });
 
+
     updatePageInfo(0);
+
 }
 
 
 /* ==================================
-   NOMOR DAN PROGRES HALAMAN
+   INFORMASI HALAMAN
 ================================== */
 
 function updatePageInfo(pageIndex) {
+
     if (!pdfDocument) return;
 
     const total = pdfDocument.numPages;
@@ -494,36 +550,53 @@ function updatePageInfo(pageIndex) {
         : 0;
 
     progressBar.style.width = `${percentage}%`;
+
 }
 
 
 /* ==================================
-   NAVIGASI
+   NAVIGASI HALAMAN
 ================================== */
 
 function goToPreviousPage() {
+
     if (pageFlip) {
         pageFlip.flipPrev();
     }
+
 }
 
+
 function goToNextPage() {
+
     if (pageFlip) {
         pageFlip.flipNext();
     }
+
 }
 
+
 function goToFirstPage() {
+
     if (pageFlip) {
         pageFlip.turnToPage(0);
     }
+
 }
 
+
 function goToLastPage() {
+
     if (pageFlip && pdfDocument) {
         pageFlip.turnToPage(pdfDocument.numPages - 1);
     }
+
 }
+
+
+/* ==================================
+   EVENT TOMBOL NAVIGASI
+================================== */
 
 prevButton.addEventListener("click", goToPreviousPage);
 nextButton.addEventListener("click", goToNextPage);
@@ -536,69 +609,108 @@ lastButton.addEventListener("click", goToLastPage);
 
 
 /* ==================================
-   LAYAR PENUH
+   MODE LAYAR PENUH
 ================================== */
 
 fullscreenButton.addEventListener("click", async () => {
+
     try {
-        const target = document.getElementById("reader");
 
         if (!document.fullscreenElement) {
-            if (target.requestFullscreen) {
-                await target.requestFullscreen();
-            }
+
+            // Fullscreen seluruh halaman, bukan hanya kotak reader.
+            await document.documentElement.requestFullscreen();
+
         } else {
+
             await document.exitFullscreen();
+
         }
+
     } catch (error) {
-        console.warn(
-            "Mode layar penuh tidak tersedia:",
-            error
-        );
+
+        console.warn("Fullscreen tidak tersedia:", error);
+
     }
+
 });
 
 
 /* ==================================
-   COBA LAGI
+   DETEKSI PERUBAHAN FULLSCREEN
+================================== */
+
+document.addEventListener("fullscreenchange", () => {
+
+    const isFullscreen = Boolean(document.fullscreenElement);
+
+    reader.classList.toggle(
+        "fullscreen-active",
+        isFullscreen
+    );
+
+    document.body.style.backgroundColor =
+        isFullscreen ? "#F2F8FF" : "";
+
+    document.documentElement.style.backgroundColor =
+        isFullscreen ? "#F2F8FF" : "";
+
+
+    // Beri waktu browser menyesuaikan ukuran layar.
+    setTimeout(() => {
+
+        window.dispatchEvent(new Event("resize"));
+
+    }, 250);
+
+});
+
+
+/* ==================================
+   TOMBOL COBA LAGI
 ================================== */
 
 retryButton.addEventListener("click", async () => {
+
     if (isLoading) return;
 
     if (pageFlip) {
+
         try {
             pageFlip.destroy();
         } catch (error) {
             console.warn(error);
         }
+
     }
 
     pageFlip = null;
     pdfDocument = null;
-
-    pageElements = [];
-    renderedPages.clear();
-    renderingPages.clear();
+    pdfPages = [];
 
     bookElement.innerHTML = "";
 
     await loadBook();
+
 });
 
 
 /* ==================================
-   PENYESUAIAN LAYAR
+   PENYESUAIAN UKURAN LAYAR
 ================================== */
 
 window.addEventListener("resize", () => {
+
     clearTimeout(flipResizeTimer);
 
     flipResizeTimer = setTimeout(() => {
+
         if (!pageFlip || !pdfDocument) return;
 
-        // Tidak membuat ulang seluruh flipbook saat layar berubah.
-    }, 200);
+        // PageFlip menyesuaikan ukuran secara otomatis.
+
+    }, 250);
+
 });
 
 
@@ -606,4 +718,4 @@ window.addEventListener("resize", () => {
    SELESAI
 ================================== */
 
-console.log("SIGAP BERANTING siap dijalankan.");
+console.log("SIGAP BERANTING Digital Flipbook siap dijalankan.");
